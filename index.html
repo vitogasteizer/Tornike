@@ -13,6 +13,11 @@ html,body{margin:0}
 body{background:var(--bg);font:11pt/1.3 Arial,Helvetica,sans-serif;color:var(--ink)}
 .bar{position:sticky;top:0;z-index:5;background:var(--bar);padding:calc(8px + env(safe-area-inset-top,0px)) 14px 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--ink)}
 :root[data-theme="dark"] .bar,:root:not([data-theme="light"]) .bar{}
+.bar{transition:transform .25s}
+.bar.hide{transform:translateY(-110%)}
+#tg{display:none;position:fixed;top:calc(6px + env(safe-area-inset-top,0px));right:8px;z-index:6;padding:4px 12px;opacity:.92}
+body.bh #tg{display:block}
+#st{font-style:normal;opacity:.8}
 .bar span{flex:1;min-width:200px;font-size:13px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bar{color:#ecebe6}}
 button{font:14px Arial,sans-serif;padding:7px 14px;border:1px solid var(--acc);background:var(--acc);color:#fff;border-radius:3px;cursor:pointer}
@@ -57,11 +62,11 @@ input[type=radio]:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 .bot div{flex:1}
 .bot .fld{width:100%;min-height:8mm}
 .cap{font-size:11pt;margin-top:1mm}
-@media (max-width:640px){body{font-size:10pt}.page{padding:10px}.num{width:7mm}.full,.ind,.eu{margin-left:0}.logo{width:15mm}}
+@media (max-width:640px){body{font-size:10pt}.page{padding:12px 12px 18mm}.fld{font-size:16px}.bot{flex-wrap:wrap;gap:8mm}.row[style*="margin-left:60mm"]{margin-left:0!important}.sheets{padding:8px 4px 16px}.num{width:7mm}.full,.ind,.eu{margin-left:0}.logo{width:15mm}}
 @page{size:A4;margin:0}
 @media print{
  html,body{background:#fff!important;width:210mm}
- .bar{display:none}
+ .bar,#tg{display:none!important}
  .sheets{padding:0}
  .page{width:210mm;height:296mm;min-height:0;margin:0;padding:12mm 15mm 10mm;break-after:page;page-break-after:always;break-inside:avoid;overflow:hidden}
  .page:last-child{break-after:auto;page-break-after:auto}
@@ -72,9 +77,10 @@ input[type=radio]:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 </style>
 </head>
 <body>
-<div class="bar"><span>შეავსეთ ველები და დააჭირეთ „Drucken / PDF“ → აირჩიეთ „Save as PDF“ (ზომა: A4, მასშტაბი: 100%, ველები/margins: None).</span>
-<button class="alt" onclick="if(confirm('Alle Felder löschen?'))location.reload()">Zurücksetzen</button>
-<button onclick="window.print()">Drucken / PDF</button></div>
+<div class="bar"><span>მონაცემები ავტომატურად ინახება ამ მოწყობილობაზე. <i id="st"></i><br>PDF: „Drucken / PDF“ → „Save as PDF“ (A4, 100%, Margins: None).</span>
+<button class="alt" onclick="resetAll()">Zurücksetzen</button>
+<button onclick="window.print()">Drucken / PDF</button><button class="alt" onclick="barHide(true)" aria-label="Leiste einklappen">▲</button></div>
+<button id="tg" onclick="barHide(false)" aria-label="Leiste ausklappen">▼</button>
 
 <div class="sheets">
 
@@ -167,6 +173,17 @@ document.querySelectorAll('input[type=text]').forEach(function(i){
 document.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('fld'))e.preventDefault();});
 document.addEventListener('paste',function(e){var t=e.target;if(t.classList&&t.classList.contains('fld')){e.preventDefault();var x=(e.clipboardData.getData('text/plain')||'').replace(/\s+/g,' ');document.execCommand('insertText',false,x);}});
 document.addEventListener('input',function(e){var t=e.target;if(t.classList&&t.classList.contains('fld')&&t.textContent===''){t.innerHTML='';}});
+
+function barHide(h){document.querySelector('.bar').classList.toggle('hide',h);document.body.classList.toggle('bh',h);}
+(function(){var y=window.scrollY||0;window.addEventListener('scroll',function(){var n=window.scrollY||0;if(n>y+8&&n>80)barHide(true);else if(n<y-8)barHide(false);y=n;},{passive:true});})();
+var KEY='aldi_fb_v1',st=document.getElementById('st'),tm;
+function collect(){var f=[].map.call(document.querySelectorAll('.fld'),function(x){return x.textContent;});var r={};document.querySelectorAll('input[type=radio]').forEach(function(x){if(x.checked){r[x.name]=[].indexOf.call(document.getElementsByName(x.name),x);}});return {f:f,r:r};}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(collect()));st.textContent='✓ gespeichert';}catch(e){st.textContent='(Speichern nicht möglich)';}}
+function queue(){st.textContent='…';clearTimeout(tm);tm=setTimeout(save,400);}
+function resetAll(){if(!confirm('Alle Felder löschen?'))return;try{localStorage.removeItem(KEY);}catch(e){}location.reload();}
+try{var d=JSON.parse(localStorage.getItem(KEY)||'null');if(d){var fl=document.querySelectorAll('.fld');(d.f||[]).forEach(function(t,i){if(t&&fl[i])fl[i].textContent=t;});for(var k in (d.r||{})){var g=document.getElementsByName(k);if(g[d.r[k]])g[d.r[k]].checked=true;}st.textContent='✓ wiederhergestellt';}}catch(e){}
+document.addEventListener('input',queue);document.addEventListener('change',queue);
+window.addEventListener('pagehide',function(){try{save();}catch(e){}});
 </script>
 </body>
 </html>
